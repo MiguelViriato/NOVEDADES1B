@@ -1,11 +1,197 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Prueba Novedades 1 B</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Novedades 1 B</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background:#f0f0f0; }
+  h1 { color: #004080; }
+  label { display: block; margin-top: 10px; font-weight: bold; }
+  select, button { padding: 8px; margin-top: 5px; width: 100%; max-width: 300px; }
+  button { background: #004080; color: white; border: none; cursor: pointer; margin-top: 15px; }
+  button:hover { background: #003366; }
+  ul { margin-top: 20px; padding-left: 20px; }
+  li { background: white; margin-bottom: 8px; padding: 10px; border-radius: 5px; box-shadow: 0 0 4px #ccc; }
+  .delete-btn { margin-left: 10px; color: red; cursor: pointer; font-weight: bold; }
+  #resumen { background: white; padding: 10px; border-radius: 5px; max-width: 320px; box-shadow: 0 0 6px #aaa; }
+  #situacionesResumen { margin-top: 15px; max-width: 320px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 6px #aaa; }
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<script>
+  // CONFIGURACIÓN DE FIREBASE
+  const firebaseConfig = {
+    apiKey: "AIzaSyARQvqvu7p0bJ5y8R4HpCZPMvdmUvQ_skM",
+    authDomain: "novedades1b.firebaseapp.com",
+    databaseURL: "https://novedades1b-default-rtdb.firebaseio.com",
+    projectId: "novedades1b",
+    storageBucket: "novedades1b.firebasestorage.app",
+    messagingSenderId: "645464647291",
+    appId: "1:645464647291:web:45b81bc60bbd52a859e4de",
+    measurementId: "G-Y97EN2QKNZ"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
 </head>
 <body>
-<h1>Hola, Novedades 1 B</h1>
-<p>Si ves esto, tu GitHub Pages funciona.</p>
+
+<h1>Novedades 1 B</h1>
+
+<div id="resumen">
+  <p><strong>Total marineros:</strong> 130</p>
+  <p><strong>Marineros con novedad:</strong> <span id="conNovedad">0</span></p>
+  <p><strong>Marineros sin novedad (presentes):</strong> <span id="sinNovedad">130</span></p>
+</div>
+
+<label for="numero">Número de marinero:</label>
+<select id="numero">
+  <option value="" disabled selected>Selecciona número de marinero</option>
+</select>
+
+<label for="situacion">Situación:</label>
+<select id="situacion">
+  <option value="" disabled selected>Selecciona situación</option>
+</select>
+
+<button onclick="agregarNovedad()">Guardar novedad</button>
+
+<h2>Listado de novedades:</h2>
+<ul id="listaNovedades"></ul>
+
+<div id="situacionesResumen"></div>
+
+<button onclick="borrarTodas()">Borrar todas las novedades</button>
+
+<script>
+  const marineros = [
+    "101 B","111 B","121 B","131 B","141 B","151 B","161 B","171 B","181 B","191 B",
+    "201 B","211 B","221 B","231 B","241 B","251 B","261 B","271 B","281 B","291 B",
+    "301 B","311 B","321 B","331 B","341 B","351 B","361 B","371 B","381 B","391 B",
+    "401 B","411 B","421 B","431 B","441 B","451 B","461 B","471 B","481 B","491 B",
+    "501 B","511 B","521 B","531 B","541 B","551 B","561 B","571 B","581 B","591 B",
+    "601 B","611 B","621 B","631 B","641 B","651 B","661 B","671 B","681 B","691 B",
+    "701 B","711 B","721 B","731 B","741 B","751 B","761 B","771 B","781 B","791 B",
+    "801 B","811 B","821 B","831 B","841 B","851 B","861 B","871 B","881 B","891 B",
+    "901 B","911 B","921 B","931 B","941 B","951 B","961 B","971 B","981 B","991 B",
+    "1001 B","1011 B","1021 B","1031 B","1041 B","1051 B","1061 B","1071 B","1081 B",
+    "1091 B","1101 B","1111 B","1121 B","1131 B","1141 B","1151 B","1161 B","1171 B",
+    "1181 B","1191 B","1201 B","1211 B","1221 B","1231 B","1241 B","1251 B","1261 B",
+    "1271 B","1281 B","1291 B","1301 B","1311 B","1321 B","1331 B","1341 B","1351 B",
+    "1361 B","1371 B","1381 B","1391 B"
+  ];
+
+  const situaciones = [
+    "G.E. MILITAR","G.E. RANCHERIA","G.E. CUARTELERO","G.E. S. GENERALES","G.E. DEPORTES",
+    "G.S. MILITAR","G.S. RANCHERIA","G.S. CUARTERERO","G.S. S. GENERALES","G.S. DEPORTES",
+    "LECTOR","LIMPIEZA","PAÑOLERO","MISA","LAVANDERIA","BANDA","PERMISO","OTROS"
+  ];
+
+  const numeroSelect = document.getElementById('numero');
+  const situacionSelect = document.getElementById('situacion');
+  const lista = document.getElementById('listaNovedades');
+  const resumenConNovedad = document.getElementById('conNovedad');
+  const resumenSinNovedad = document.getElementById('sinNovedad');
+  const situacionesResumenDiv = document.getElementById('situacionesResumen');
+
+  let novedades = [];
+
+  function llenarSelect(select, listaDatos) {
+    listaDatos.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item;
+      option.textContent = item;
+      select.appendChild(option);
+    });
+  }
+  llenarSelect(numeroSelect, marineros);
+  llenarSelect(situacionSelect, situaciones);
+
+  // Cargar novedades desde Firebase
+  function cargarNovedades() {
+    db.ref('novedades').on('value', snapshot => {
+      const data = snapshot.val();
+      novedades = data ? Object.values(data) : [];
+      mostrarNovedades();
+      actualizarResumen();
+    });
+  }
+
+  function guardarNovedadFirebase() {
+    const updates = {};
+    novedades.forEach((nov, i) => updates[i] = nov);
+    db.ref('novedades').set(updates);
+  }
+
+  function contarSituaciones() {
+    const conteo = {};
+    situaciones.forEach(sit=>conteo[sit]=0);
+    novedades.forEach(nov=>{
+      if(conteo.hasOwnProperty(nov.situacion)) conteo[nov.situacion]++;
+    });
+    return conteo;
+  }
+
+  function actualizarResumen() {
+    const totalMarineros = marineros.length;
+    const marinerosConNovedad = novedades.length;
+    resumenConNovedad.textContent = marinerosConNovedad;
+    resumenSinNovedad.textContent = totalMarineros - marinerosConNovedad;
+
+    const conteo = contarSituaciones();
+    let html = '<h3>Marineros por situación:</h3><ul>';
+    for(const [sit,cant] of Object.entries(conteo)){
+      if(cant>0) html += `<li>${sit}: ${cant}</li>`;
+    }
+    html += '</ul>';
+    situacionesResumenDiv.innerHTML = html;
+  }
+
+  function mostrarNovedades() {
+    lista.innerHTML = '';
+    if(novedades.length===0){
+      lista.innerHTML='<li>No hay novedades</li>';
+    } else {
+      novedades.forEach((novedad,i)=>{
+        const li=document.createElement('li');
+        li.textContent=`Marinero: ${novedad.numero} - Situación: ${novedad.situacion}`;
+        const delBtn=document.createElement('span');
+        delBtn.textContent='✖';
+        delBtn.className='delete-btn';
+        delBtn.title='Borrar esta novedad';
+        delBtn.onclick=()=>{ novedades.splice(i,1); guardarNovedadFirebase(); };
+        li.appendChild(delBtn);
+        lista.appendChild(li);
+      });
+    }
+  }
+
+  function agregarNovedad() {
+    const numero = numeroSelect.value;
+    const situacion = situacionSelect.value;
+    if(!numero || !situacion){ alert('Selecciona número y situación'); return; }
+    const idx = novedades.findIndex(n=>n.numero===numero);
+    if(idx!==-1) novedades[idx].situacion = situacion;
+    else novedades.push({numero,situacion});
+    guardarNovedadFirebase();
+    numeroSelect.selectedIndex=0;
+    situacionSelect.selectedIndex=0;
+  }
+
+  function borrarTodas(){
+    if(confirm('¿Seguro que quieres borrar todas las novedades?')){
+      novedades=[];
+      db.ref('novedades').remove();
+    }
+  }
+
+  cargarNovedades();
+</script>
+
 </body>
 </html>
